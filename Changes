@@ -1,0 +1,59 @@
+
+RCS file: /home/CVSROOT/smrz/Encode/Mapper/Mapper.pm,v
+Working file: Mapper.pm
+head: 1.10
+branch:
+locks: strict
+access list:
+symbolic names:
+	start: 1.1.1.1
+	smrz: 1.1.1
+keyword substitution: kv
+total revisions: 11;	selected revisions: 11
+description:
+----------------------------
+revision 1.10
+date: 2003/08/04 12:07:40;  author: smrz;  state: Exp;  lines: +38 -14
+First release to the web, nice documentation and tests
+----------------------------
+revision 1.9
+date: 2003/08/04 09:35:14;  author: smrz;  state: Exp;  lines: +542 -343
+POD documentation, UNIX EOL
+----------------------------
+revision 1.8
+date: 2003/07/31 12:49:22;  author: smrz;  state: Exp;  lines: +38 -9
+Fix to ->recover; add ->compute, remove ->describe
+----------------------------
+revision 1.7
+date: 2003/07/30 15:08:58;  author: smrz;  state: Exp;  lines: +70 -51
+Dumping, tests, evolution
+----------------------------
+revision 1.6
+date: 2003/07/23 15:49:38;  author: smrz;  state: Exp;  lines: +4 -4
+Bug fix in ->encode and ->decode
+----------------------------
+revision 1.5
+date: 2003/07/23 14:48:13;  author: smrz;  state: Exp;  lines: +46 -15
+UNIVERSAL reference check, ->encode and ->decode
+----------------------------
+revision 1.4
+date: 2003/07/23 14:03:12;  author: smrz;  state: Exp;  lines: +29 -1
+Tests, encode() and decode() methods in the module
+----------------------------
+revision 1.3
+date: 2003/07/21 22:53:30;  author: smrz;  state: Exp;  lines: +5 -4
+Newer POD, e-mail's anti-measure
+----------------------------
+revision 1.2
+date: 2003/07/20 22:11:43;  author: smrz;  state: Exp;  lines: +4 -3
+Improvements in POD
+----------------------------
+revision 1.1
+date: 2003/07/19 19:30:21;  author: smrz;  state: Exp;
+branches:  1.1.1;
+Initial revision
+----------------------------
+revision 1.1.1.1
+date: 2003/07/19 19:30:21;  author: smrz;  state: Exp;  lines: +0 -0
+Initial h2xs adaptation
+=============================================================================
