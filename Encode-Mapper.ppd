@@ -1,0 +1,13 @@
+<SOFTPKG NAME="Encode-Mapper" VERSION="1,16,0,0">
+	<TITLE>Encode-Mapper</TITLE>
+	<ABSTRACT>Perl extension for intuitive, yet efficient construction of mappings for Encode</ABSTRACT>
+	<AUTHOR>Otakar Smrz &lt;smrz@ckl.mff.cuni.cz&gt;</AUTHOR>
+	<IMPLEMENTATION>
+		<DEPENDENCY NAME="Carp" VERSION="0,0,0,0" />
+		<DEPENDENCY NAME="Data-Dumper" VERSION="0,0,0,0" />
+		<DEPENDENCY NAME="Encode" VERSION="0,0,0,0" />
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+		<CODEBASE HREF="Encode-Mapper.tar.gz" />
+	</IMPLEMENTATION>
+</SOFTPKG>
