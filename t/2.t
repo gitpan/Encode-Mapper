@@ -13,6 +13,18 @@ use Test::More tests => 4;
 
     use Encode::Mapper;     ############################################# Enjoy the ride ^^
 
+    use Encode::Mapper ':others', ':silent';    # syntactic sugar for compiler options ..
+
+    Encode::Mapper->options (                   # .. equivalent, see more in the text
+            'others' => sub { shift },
+            'silent' => 1,
+        );
+
+    Encode::Mapper->options (                   # .. resetting, but not to use 'use' !!!
+            'others' => undef,
+            'silent' => 0
+        );
+
     ## Types of rules for mapping the data and controlling the engine's configuration #####
 
     @rules = (
@@ -26,7 +38,6 @@ use Test::More tests => 4;
 
         'Xxx',          [ sub { $i++; '' }, 'X' ],      # count the still married 'x'
     );
-
 
     ## Constructors of the engine, i.e. one Encode::Mapper instance #######################
 

@@ -2,7 +2,7 @@
 #
 # Mapper Engine Class ##################################################################### 2003/06/19
 
-# $Id: Mapper.pm,v 1.10 2003/08/04 12:07:40 smrz Exp $
+# $Id: Mapper.pm,v 1.16 2003/08/20 16:17:22 smrz Exp $
 
 package Encode::Mapper;
 
@@ -13,10 +13,114 @@ use warnings;
 
 use Carp;
 
-our $VERSION = do { my @r = q$Revision: 1.10 $ =~ /\d+/g; sprintf "%d." . "%02d" x $#r, @r };
+our $VERSION = do { my @r = q$Revision: 1.16 $ =~ /\d+/g; sprintf "%d." . "%02d" x $#r, @r };
 
 
 use bytes;                  # ensures splitting into one-byte tokens .. lexically scoped
+
+
+our %options;               # records of options per package .. global register
+our %option;                # options of the caller package .. used with local
+
+
+sub import {                # enforce setting of options
+    my $cls = shift @_;
+    $cls->options(@_) if @_;
+}
+
+
+sub whisper ($) {           # module's internal function
+
+    carp shift unless $option{'silent'};
+}
+
+
+sub verify_rule ($$) {      # module's internal function
+
+    unless (defined $_[0] and $_[0] ne '') {
+        whisper "Rule's LHS is empty, rule ignored";
+        return;
+    }
+    unless (defined $_[1]) {
+        whisper "Rule's RHS is undefined, rule ignored";
+        return;
+    }
+
+    if (UNIVERSAL::isa($_[1], 'ARRAY')) {
+        unless (defined $_[1]->[0]) {
+            whisper "Rule's RHS is undefined, rule ignored";
+            return;
+        }
+        unless (ref \$_[1]->[0] eq 'SCALAR' or UNIVERSAL::isa($_[1]->[0], 'CODE')) {
+            whisper "Rule's RHS is neither literal nor subroutine reference, rule ignored";
+            return;
+        }
+        unless (defined $_[1]->[1] and length $_[1]->[1] < length $_[0]) {
+            whisper "Rule type '\$A => [\$X, \$Y], length \$A > length \$Y' misused, considering it '\$A => \$X'";
+            $_[1] = $_[1]->[0];
+        }
+    }
+    elsif (ref \$_[1] ne 'SCALAR' and not UNIVERSAL::isa($_[1], 'CODE')) {
+        whisper "Rule's RHS is neither literal nor subroutine reference, rule ignored";
+        return;
+    }
+
+    return 1;
+}
+
+
+sub options ($%) {          # options for general compilation of Mappers
+    my $cls = shift @_;
+    my ($i, $opt, %opt);
+
+    my $caller = caller 0; $caller = caller 1 if $caller eq __PACKAGE__;
+    my @returns = exists $options{$caller} ? %{$options{$caller}} : ();
+
+    while (@_) {
+        $opt = lc shift @_;
+
+        if ($opt =~ /^\:/) {
+            $opt eq ':others' and $opt{'others'} = sub { shift } and next;
+            $opt eq ':silent' and $opt{'silent'} = 1 and next;
+            $opt eq ':join'   and $opt{'join'} = '';
+        }
+        else {
+            $opt =~ /^\-*(.*)$/;
+            $opt{$1} = shift @_;
+        }
+    }
+
+    {
+        local $option{'silent'} = exists $opt{'silent'} ? $opt{'silent'} : $options{$caller}{'silent'};
+
+        if (defined $opt{'complement'} and UNIVERSAL::isa($opt{'complement'}, 'ARRAY')) {
+            for ($i = 0; $i < @{$opt{'complement'}}; $i += 2) {
+                verify_rule $opt{'complement'}->[$i], $opt{'complement'}->[$i + 1];
+            }
+        }
+
+        if (defined $opt{'override'} and UNIVERSAL::isa($opt{'override'}, 'ARRAY')) {
+            for ($i = 0; $i < @{$opt{'override'}}; $i += 2) {
+                verify_rule $opt{'override'}->[$i], $opt{'override'}->[$i + 1];
+            }
+        }
+
+        if (defined $opt{'others'} and not $option{'silent'}) {     # see whisper
+            if (UNIVERSAL::isa($opt{'others'}, 'CODE')) {
+                carp "The subroutine will be called with the 'other' LHS parameter to get the rule's RHS";
+            }
+            else {
+                carp "The scalar value will become the RHS of each 'other' LHS";
+            }
+        }
+    }
+
+    return %opt unless defined $cls;
+
+    $options{$caller}{$_} = $opt{$_} foreach keys %opt;
+
+    return @returns;
+}
 
 
 *new = *compile{'CODE'};    # provides the 'new' constructor .. the 'compile' method
@@ -25,44 +129,46 @@ use bytes;                  # ensures splitting into one-byte tokens .. lexicall
 
 sub compile ($@) {          # returns Mapper .. modified Aho-Corasick and Boyer-Moore search engine
     my $cls = shift @_;
-    my (@tree, @bell, @skip, @queue, @stack);
+    my (@tree, @bell, @skip, @queue, %redef);
     my ($q, $r, $s, $t, $i, $token, $trick);
 
     my ($null_list, $null_hash) = ([], {});     # references to empties need not consume unique memory
+    my ($no_code, $no_list) = (1, 1);           # optimization indicators
+
+    local %option = exists $options{caller 0} ? %{$options{caller 0}} : ();
+                                                # options be local due to verify_rule and whisper
+
+    if (UNIVERSAL::isa($_[0], 'ARRAY')) {
+        %option = (%option, options undef, @{shift @_});
+    }
+    elsif (UNIVERSAL::isa($_[0], 'HASH')) {
+        %option = (%option, options undef, %{shift @_});
+    }
 
     $skip[0] = undef;       # never ever used .. fix the number of list elements equal
     $bell[0] = $null_list;  # important .. depth-wise inheritation of the lists
 
+    if (defined $option{'complement'}) {
+        for ($i = 0; $i < @{$option{'complement'}}; $i += 2) {
+
+            $q = 0;
+
+            foreach $token (split //, $option{'complement'}->[$i]) {
+                $tree[$q]->{$token} = ++$r unless defined $tree[$q]->{$token};  # increment $r ^^
+                $q = $tree[$q]->{$token};
+            }
+
+            $tree[$q] = {} unless defined $tree[$q];    # define trees correctly, economize below
+
+            whisper "Redefining the mapping for '" . $option{'complement'}->[$i] . "'" if defined $bell[$q];
+
+            $bell[$q] = [ $option{'complement'}->[$i + 1] ];
+        }
+    }
+
     for ($i = 0; $i < @_; $i += 2) {    # generate $tree[$q] transition function and initial $bell[$q]
 
-        unless (defined $_[$i] and $_[$i] ne '') {
-            carp "Rule's LHS is empty, rule ignored";
-            next;
-        }
-        unless (defined $_[$i + 1]) {
-            carp "Rule's RHS is undefined, rule ignored";
-            next;
-        }
-
-        if (UNIVERSAL::isa($_[$i + 1], 'ARRAY')) {
-            unless (defined $_[$i + 1]->[0]) {
-                carp "Rule's RHS is undefined, rule ignored";
-                next;
-            }
-            unless (ref \$_[$i + 1]->[0] eq 'SCALAR' or UNIVERSAL::isa($_[$i + 1]->[0], 'CODE')) {
-                carp "Rule's RHS is neither literal nor subroutine reference, rule ignored";
-                next;
-            }
-            unless (defined $_[$i + 1]->[1] and length $_[$i + 1]->[1] < length $_[$i]) {
-                carp "Rule type '\$A => [\$X, \$Y], length \$A > length \$Y' misused, " .
-                     "considering it '\$A => \$X'";
-                $_[$i + 1] = $_[$i + 1]->[0];
-            }
-        }
-        elsif (ref \$_[$i + 1] ne 'SCALAR' and not UNIVERSAL::isa($_[$i + 1], 'CODE')) {
-            carp "Rule's RHS is neither literal nor subroutine reference, rule ignored";
-            next;
-        }
+        next unless verify_rule $_[$i], $_[$i + 1];
 
         $q = 0;
 
@@ -73,17 +179,58 @@ sub compile ($@) {          # returns Mapper .. modified Aho-Corasick and Boyer-
 
         $tree[$q] = {} unless defined $tree[$q];    # define trees correctly, economize below
 
-        carp "Redefining the mapping for key '$_[$i]'" if defined $bell[$q];
+        whisper "Redefining the mapping for '$_[$i]'" if $redef{$q}++;
+
         $bell[$q] = [ $_[$i + 1] ];
     }
 
-    foreach $token (map { chr } 0x00..0xFF) {
-        unless (defined $tree[0]->{$token}) { $tree[0]->{$token} = 0; }
-        else {
-            $skip[$tree[0]->{$token}] = 0;
-            unless (defined $bell[$tree[0]->{$token}]) { $bell[$tree[0]->{$token}] = $bell[0]; }
+    if (defined $option{'override'}) {
+        for ($i = 0; $i < @{$option{'override'}}; $i += 2) {
 
-            push @queue, $tree[0]->{$token};
+            $q = 0;
+
+            foreach $token (split //, $option{'override'}->[$i]) {
+                $tree[$q]->{$token} = ++$r unless defined $tree[$q]->{$token};  # increment $r ^^
+                $q = $tree[$q]->{$token};
+            }
+
+            $tree[$q] = {} unless defined $tree[$q];    # define trees correctly, economize below
+
+            whisper "Redefining the mapping for '" . $option{'override'}->[$i] . "'" if $redef{$q}++;
+
+            $bell[$q] = [ $option{'override'}->[$i + 1] ];
+        }
+    }
+
+    foreach $token (map { chr } 0x00..0xFF) {
+        unless (defined $tree[0]->{$token}) {
+            unless (defined $option{'others'}) {
+                $tree[0]->{$token} = 0;
+            }
+            else {
+                $tree[0]->{$token} = ++$r;  # increment $r ^^
+                $tree[$r] = {};             # define trees correctly
+            }
+        }
+
+        $q = $tree[0]->{$token};    # including existing prefixes
+
+        unless ($q == 0) {
+            unless (defined $bell[$q]) {
+                if (not defined $option{'others'}) {
+                    $bell[$q] = $bell[0];
+                }
+                elsif (UNIVERSAL::isa($option{'others'}, 'CODE')) {
+                    $bell[$q] = [ $option{'others'}->($token) ];
+                }
+                else {
+                    $bell[$q] = [ $option{'others'} ];
+                }
+            }
+
+            $skip[$q] = 0;
+
+            push @queue, $q;
         }
     }
 
@@ -128,12 +275,34 @@ sub compile ($@) {          # returns Mapper .. modified Aho-Corasick and Boyer-
         $tree[$q] = $null_hash unless keys %{$tree[$q]};    # economize with memory
     }
 
+    for ($q = 1; $q < @bell; $q++) {    # optimize the bell function for $q > 0
+
+        if (grep { UNIVERSAL::isa($_, 'CODE') } @{$bell[$q]}) {
+            $no_code = 0;
+        }
+        elsif (defined $option{'join'}) {
+            $bell[$q] = join $option{'join'}, @{$bell[$q]};
+            next;
+        }
+
+        if (@{$bell[$q]} == 1) {
+            $bell[$q] = $bell[$q]->[0];
+        }
+        else {
+            $bell[$q] = $null_list if @{$bell[$q]} == 0;
+            $no_list = 0;
+        }
+    }
+
     return bless {
-                    "current" => 0,
-                    "tree" => \@tree,
-                    "bell" => \@bell,
-                    "skip" => \@skip,
-                    "null" => { 'list' => $null_list, 'hash' => $null_hash },
+                    'current' => 0,
+                    'tree' => \@tree,
+                    'bell' => \@bell,
+                    'skip' => \@skip,
+                    'null' => { 'list' => $null_list, 'hash' => $null_hash },
+                    'join' => $option{'join'},
+                    'no_code' => $no_code,
+                    'no_list' => $no_list,
         }, $cls;
 }
 
@@ -144,13 +313,27 @@ sub process ($@) {          # returns the list of search results performed by Ma
 
     $q = $obj->{'current'};
 
-    foreach $phrase (@_) {
-        foreach $token (split //, $phrase) {
-            until (defined $obj->{'tree'}[$q]->{$token}) {
-                push @returns, @{$obj->{'bell'}[$q]};
-                $q = $obj->{'skip'}[$q];
+    if ($obj->{'no_list'}) {
+        foreach $phrase (@_) {
+            foreach $token (split //, $phrase) {
+                until (defined $obj->{'tree'}[$q]->{$token}) {
+                    push @returns, $obj->{'bell'}[$q];
+                    $q = $obj->{'skip'}[$q];
+                }
+                $q = $obj->{'tree'}[$q]->{$token};
             }
-            $q = $obj->{'tree'}[$q]->{$token};
+        }
+    }
+    else {
+        foreach $phrase (@_) {
+            foreach $token (split //, $phrase) {
+                until (defined $obj->{'tree'}[$q]->{$token}) {
+                    push @returns, ref $obj->{'bell'}[$q] eq 'ARRAY' ?
+                         @{$obj->{'bell'}[$q]} : $obj->{'bell'}[$q];
+                    $q = $obj->{'skip'}[$q];
+                }
+                $q = $obj->{'tree'}[$q]->{$token};
+            }
         }
     }
 
@@ -166,9 +349,18 @@ sub recover ($;$$) {        # returns the 'in-progress' search result and resets
 
     $q = $obj->{'current'} unless defined $q;
 
-    until ($q == 0) {
-        push @returns, @{$obj->{'bell'}[$q]};
-        $q = $obj->{'skip'}[$q];
+    if ($obj->{'no_list'}) {
+        until ($q == 0) {
+            push @returns, $obj->{'bell'}[$q];
+            $q = $obj->{'skip'}[$q];
+        }
+    }
+    else {
+        until ($q == 0) {
+            push @returns, ref $obj->{'bell'}[$q] eq 'ARRAY' ?
+                 @{$obj->{'bell'}[$q]} : $obj->{'bell'}[$q];
+            $q = $obj->{'skip'}[$q];
+        }
     }
 
     $obj->{'current'} = defined $r ? $r : 0;
@@ -214,11 +406,15 @@ sub dumper ($;$) {
 
 sub encode ($$$;$) {
     my ($cls, $text, $encoder, $enc) = @_;
+    my ($mapper, $join);
+
+    local %option = exists $options{caller 0} ? %{$options{caller 0}} : ();
+                                                # options be local due to whisper
 
     require Encode;
 
     unless (Encode::is_utf8($text)) {
-        carp "The input text is not in Perl's internal utf8 .. note only, may be OK";
+        whisper "The input text is not in Perl's internal utf8 .. note only, might be fine";
     }
 
     if ($enc) {
@@ -235,10 +431,18 @@ sub encode ($$$;$) {
         return undef;
     }
 
-    foreach my $mapper (@{$encoder}) {
-        $text = join "", map {
-                    UNIVERSAL::isa($_, 'CODE') ? $_->() : $_
-                } $mapper->process($text), $mapper->recover();
+    foreach $mapper (@{$encoder}) {
+        $join = defined $mapper->{'join'} ? $mapper->{'join'} :
+                defined $option{'join'} ? $option{'join'} : "";
+
+        if ($mapper->{'no_code'}) {
+            $text = join $join, $mapper->process($text), $mapper->recover();
+        }
+        else {
+            $text = join $join, map {
+                        UNIVERSAL::isa($_, 'CODE') ? $_->() : $_
+                    } $mapper->process($text), $mapper->recover();
+        }
     }
 
     return $text;
@@ -247,6 +451,10 @@ sub encode ($$$;$) {
 
 sub decode ($$$;$) {
     my ($cls, $text, $decoder, $enc) = @_;
+    my ($mapper, $join);
+
+    local %option = exists $options{caller 0} ? %{$options{caller 0}} : ();
+                                                # options be local due to tradition ^^
 
     require Encode;
 
@@ -262,10 +470,18 @@ sub decode ($$$;$) {
         return undef;
     }
 
-    foreach my $mapper (@{$decoder}) {
-        $text = join "", map {
-                    UNIVERSAL::isa($_, 'CODE') ? $_->() : $_
-                } $mapper->process($text), $mapper->recover();
+    foreach $mapper (@{$decoder}) {
+        $join = defined $mapper->{'join'} ? $mapper->{'join'} :
+                defined $option{'join'} ? $option{'join'} : "";
+
+        if ($mapper->{'no_code'}) {
+            $text = join $join, $mapper->process($text), $mapper->recover();
+        }
+        else {
+            $text = join $join, map {
+                        UNIVERSAL::isa($_, 'CODE') ? $_->() : $_
+                    } $mapper->process($text), $mapper->recover();
+        }
     }
 
     return Encode::is_utf8($text) ? $text : Encode::decode($enc, $text);
@@ -281,12 +497,26 @@ __END__
 
 Encode::Mapper - Perl extension for intuitive, yet efficient construction of mappings for Encode
 
-    $Id: Mapper.pm,v 1.10 2003/08/04 12:07:40 smrz Exp $
+=head1 REVISION
+
+    $Revision: 1.16 $       $Date: 2003/08/20 16:17:22 $
 
 
 =head1 SYNOPSIS
 
     use Encode::Mapper;     ############################################# Enjoy the ride ^^
+
+    use Encode::Mapper ':others', ':silent';    # syntactic sugar for compiler options ..
+
+    Encode::Mapper->options (                   # .. equivalent, see more in the text
+            'others' => sub { shift },
+            'silent' => 1,
+        );
+
+    Encode::Mapper->options (                   # .. resetting, but not to use 'use' !!!
+            'others' => undef,
+            'silent' => 0
+        );
 
     ## Types of rules for mapping the data and controlling the engine's configuration #####
 
@@ -302,12 +532,10 @@ Encode::Mapper - Perl extension for intuitive, yet efficient construction of map
         'Xxx',          [ sub { $i++; '' }, 'X' ],      # count the still married 'x'
     );
 
-
     ## Constructors of the engine, i.e. one Encode::Mapper instance #######################
 
     $mapper = Encode::Mapper->compile( @rules );        # engine constructor
     $mapper = Encode::Mapper->new( @rules );            # equivalent alias
-
 
     ## Elementary performance of the engine ###############################################
 
@@ -344,7 +572,7 @@ Encode::Mapper - Perl extension for intuitive, yet efficient construction of map
 
 =head1 DESCRIPTION
 
-It looks like the author of the extension ... ;) prefered giving formal and terse examples to
+It looks like the author of the extension ... ;) preferred giving formal and terse examples to
 writing English. Please, see L<Encode::Arabic|Encode::Arabic> and L<Encode::Korean|Encode::Korean>,
 where L<Encode::Mapper|Encode::Mapper> is used for solving complex real-world problems.
 
@@ -367,20 +595,24 @@ before the rest of the input:
     $A => [$X, $Y]      # $Y .. literal string for which 'length $Y < length $A'
 
 The order of the rules does not matter, except when several rules with the same LHS are stated.
-In such a case, redefinition warning is issued before overriding the RHS.
+In such a case, redefinition warning is usually issued before overriding the RHS.
 
 
 =head2 LOW-LEVEL METHODS
 
-
 =over
 
 
-=item compile (I<$class,> @list)
+=item compile (I<$class,> @rules)
+
+=item compile (I<$class,> $opts, @rules)
 
 The constructor of an L<Encode::Mapper|Encode::Mapper> instance. The first argument is the name of the
-class, the rest is the list of rules ... LHS odd elements, RHS even elements. Redefinition for repeated
-LHS is enabled, and warned about.
+class, the rest is the list of rules ... LHS odd elements, RHS even elements, unless the first element
+is a reference to an array or a hash, which then becomes C<$opts>.
+
+If C<$opts> is recognized, it is used to modify the compiler C<options> locally for the engine being
+constructed. If an option is not overridden, its global setting holds.
 
 The compilation algorithm, and the search algorithm itself, were inspired by Aho-Corasick and Boyer-Moore
 algorithms, and by the studies of finite automata with the restart operation. The engine is implemented
@@ -461,12 +693,12 @@ initial state. Developers might like this ;)
 
     foreach $result ($mapper->compute($source)) {   # follow the computation
 
-        print "Token", $result->[0];
-        print "Source", $result->[1];
-        print "Output", join " + ", @{$result->[2]};
-        print "Target", $result->[3];
-        print "Bell", join ", ", @{$result->[4]};
-        print "Skip", $result->[5];
+        print "Token"   ,   $result->[0];
+        print "Source"  ,   $result->[1];
+        print "Output"  ,   join " + ", @{$result->[2]};
+        print "Target"  ,   $result->[3];
+        print "Bell"    ,   join ", ", @{$result->[4]};
+        print "Skip"    ,   $result->[5];
     }
 
 
@@ -502,10 +734,13 @@ In combination, this module offers the following C<encode> and C<decode> methods
 C<$encoder>/C<$decoder> represent merely a reference to an array of mappers, although mathematics might
 do more than that in future implementations ;)
 
-Currently, the mappers involved are not reset with C<recover> before the computation:
+Currently, the mappers involved are not reset with C<recover> before the computation. See the C<--join>
+option for more comments on the code:
 
     foreach $mapper (@{$_[2]}) {    # either $encoder or $decoder
-        $text = join "", map {
+        $join = defined $mapper->{'join'} ? $mapper->{'join'} :
+                defined $option{'join'} ? $option{'join'} : "";
+        $text = join $join, map {
                     UNIVERSAL::isa($_, 'CODE') ? $_->() : $_
                 } $mapper->process($text), $mapper->recover();
     }
@@ -531,9 +766,161 @@ utf8 is assumed.
 =back
 
 
-=head2 EXPORT
+=head2 OPTIONS AND EXPORT
 
-This module does not export any symbols.
+The language the L<Encode::Mapper|Encode::Mapper> engine works on is not given exclusively by the rules
+passed as parameters to the C<compile> or C<new> constructor methods. The nature of the compilation is
+influenced by the current setting of the following options:
+
+=over
+
+=item --complement
+
+This option accepts a reference to an array declaring rules which are to complement the rules of
+the constructor. Redefinition warnings are issued only if you redefine within the option's list,
+not when a rule happens to be overridden during compilation.
+
+=item --override
+
+Overrides the rules of the constructor. Redefinition warnings are issued, though. You might, for
+example, want to preserve all XML markup in the data you are going to process through your
+encoders/decoders:
+
+    'override' => [             # override rules of these LHS .. there's no other tricks ^^
+
+            (                   # combinations of '<' and '>' with the other bytes
+                map {
+
+                    my $x = chr $_;
+
+                    "<" . $x, [ "<" . $x, ">" ],    # propagate the '>' sign implying ..
+                    ">" . $x, [ $x, ">" ],          # .. preservation of the bytes
+
+                } 0x00..0x3B, 0x3D, 0x3F..0xFF
+            ),
+
+                ">>",           ">",                # stop the whole process ..
+                "<>",           "<>",               # .. do not even start it
+
+                "><",           [ "<", ">" ],       # rather than nested '<' and '>', ..
+                "<<",           [ "<<", ">" ],
+
+                ">\\<",         [ "<", ">" ],       # .. prefer these escape sequences
+                ">\\\\",        [ "\\", ">" ],
+                ">\\>",         [ ">", ">" ],
+
+                ">",            ">",                # singular symbols may migrate right ..
+                "<",            "<",                # .. or preserve the rest of the data
+        ]
+
+=item --others
+
+If defined, this option controls how to deal with 'others', i.e. bytes of input for which there is no
+rule, by defining rules for them. In case this option gets a code reference, the subroutine will be
+called with the 'other' LHS parameter to get the rule's RHS. Otherwise, a defined scalar value will
+become the RHS of each 'other' LHS.
+
+To preserve the 'other' bytes, you can use
+
+    'others' => sub { shift }   # preserve every non-treated byte
+
+the effect of which is similar to including the C<map> to the C<--complement> rules:
+
+    'complement' => [ ( map { ( chr $_ ) x 2 } 0x00..0xFF ), ... ]  # ... is your rules
+
+You may of course wish to return undefined values if there are any non-treated bytes in the input. In
+order for the C<undef> to be a correct RHS, you have to protect it once more by the C<sub> like this:
+
+    'others' => sub { sub { undef } }
+
+=item --silent
+
+Setting it to a true value will prevent any warnings issued during the engine's compilation, mostly
+reflecting an incorrect or dubious use of a rule.
+
+=item --join
+
+This option enables less memory-requiring representation of the engines. If this option is defined when
+the constructor is called, the setting is stored in the instance internally. Any lists of literal RHS
+which are to be emitted simultaneously from the engine are joined into a string with the option's value,
+empty lists turn into empty strings. If an engine was compiled with this option defined, the value will
+be used to join output of C<encode> and C<decode>, too. If not, either the current value of the option
+or the empty string will help instead.
+
+=back
+
+The keywords of options can be in mixed case and/or start with any number of dashes, and the next element
+in the list is taken as the option's value. There are special keywords, however, beginning with a colon
+and not gulping down the next element:
+
+=over
+
+=item :others
+
+Equivalent to the code C<< 'others' => sub { shift } >> explained above.
+
+=item :silent
+
+Equivalent to C<< 'silent' => 1 >>, or rather to the maximum silence if more degrees of it are introduced
+in the future.
+
+=item :join
+
+Equivalent to C<< 'join' => '' >>. Use this option if you are going to dump and load the new engine often,
+and if you do not miss the list-supporting uniformity of C<process> and C<recover>.
+
+=back
+
+
+Compiler options are associated with package names in the C<%Encode::Mapper::options> variable, and confined
+to them. While C<options> and C<import> perform the setting with respect to the caller package, accessing
+the hash directly is neither recommended, nor restricted.
+
+There is a nice compile-time invocation of C<import> with the C<use>C< Encode::Mapper LIST> idiom, which you
+might prefer to explicit method calls. Local modification of the package's global setting that applies just
+to the engine being constructed is done by supplying the options as an extra parameter to C<compile>.
+
+    use Data::Dump 'dump';                  # pretty data printing is below
+
+    $Encode::Mapper::options{'ByForce'} = { qw ':others - silent errors' };
+
+    package ByMethod;                       # import called at compile time
+                                            # no warnings, 'silent' is true
+    Encode::Mapper->options('complement' => [ 'X', 'Y' ], 'others' => 'X');
+    use Encode::Mapper 'silent' => 299_792_458;
+
+    package main;                           # import called at compile time
+                                            # 'non-existent' may exist once
+    print dump %Encode::Mapper::options;
+    use Encode::Mapper ':others', ':silent', 'non-existent', 'one';
+
+    # (
+    #   "ByMethod",
+    #   { complement => ["X", "Y"], others => "X", silent => 299_792_458 },
+    #   "ByForce",
+    #   { ":others" => "-", silent => "errors" },
+    #   "main",
+    #   { "non-existent" => "one", others => sub { "???" }, silent => 1 },
+    # )
+
+
+=over
+
+
+=item options (I<$class,> @list)
+
+If C<$class> is defined, enforces the options in the list globally for the calling package. The return value
+of this method is the state of the options before the proposed changes were set. If C<$class> is undefined,
+nothing is set, only the canonized forms of the declared keywords and their values are returned.
+
+
+=item import (I<$class,> @list)
+
+This module does not export any symbols. This method just calls C<options>, provided there are some
+elements in the list.
+
+
+=back
 
 
 =head1 SEE ALSO
@@ -550,7 +937,7 @@ L<Data::Dumper|Data::Dumper>
 
 Otakar Smrz, L<http://ckl.mff.cuni.cz/smrz/>
 
-    eval { 'E<lt>' . 'smrz' . "\x40" . (join '.', qw 'ckl mff cuni cz') . 'E<gt>' }
+    eval { 'E<lt>' . 'smrz' . "\x40" . ( join '.', qw 'ckl mff cuni cz' ) . 'E<gt>' }
 
 Perl is also designed to make the easy jobs not that easy ;)
 

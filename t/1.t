@@ -18,7 +18,8 @@ require_ok 'Data::Dumper';
 # Insert your test code below, the Test::More module is use()ed here so read
 # its man page ( perldoc Test::More ) for help writing this test script.
 
-can_ok 'Encode::Mapper', qw 'new compile process recover compute dumper encode decode';
+can_ok 'Encode::Mapper', qw 'new compile process recover compute dumper',
+       qw 'encode decode', qw 'options import';
 
 my $mapper = Encode::Mapper->new (
 
