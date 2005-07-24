@@ -2,7 +2,7 @@
 #
 # Mapper Engine Class ##################################################################### 2003/06/19
 
-# $Id: Mapper.pm,v 1.18 2004/02/08 14:08:24 smrz Exp $
+# $Id: Mapper.pm,v 1.19 2005/07/24 18:52:52 smrz Exp $
 
 package Encode::Mapper;
 
@@ -13,7 +13,7 @@ use warnings;
 
 use Carp;
 
-our $VERSION = do { my @r = q$Revision: 1.18 $ =~ /\d+/g; sprintf "%d." . "%02d" x $#r, @r };
+our $VERSION = do { my @r = q$Revision: 1.19 $ =~ /\d+/g; sprintf "%d." . "%02d" x $#r, @r };
 
 
 use bytes;                  # ensures splitting into one-byte tokens .. lexically scoped
@@ -23,7 +23,7 @@ our %options;               # records of options per package .. global register
 our %option;                # options of the caller package .. used with local
 
 
-sub import {                # enforce setting of options
+sub import {                # enforces setting of options
     my $cls = shift @_;
     $cls->options(@_) if @_;
 }
@@ -468,7 +468,8 @@ sub describe ($;$) {
 
     if (defined $ref) {
         $ref = *STDERR if ref $ref ne 'GLOB';
-        print $ref ( join ", ", map { $return->{$_} . " " . $_ } grep { $_ ne 'lists' } keys %{$return} ) . "\n";
+        print $ref ( join ", ", map { ( defined $return->{$_} ? $return->{$_} : 'undef' ) . " " . $_ }
+                                    grep { $_ ne 'lists' } keys %{$return} ) . "\n";
     }
 
     return $return;
@@ -574,7 +575,7 @@ Encode::Mapper - Perl extension for intuitive, yet efficient construction of map
 
 =head1 REVISION
 
-    $Revision: 1.18 $       $Date: 2004/02/08 14:08:24 $
+    $Revision: 1.19 $       $Date: 2005/07/24 18:52:52 $
 
 
 =head1 SYNOPSIS
@@ -898,9 +899,9 @@ encoders/decoders:
 =item --others
 
 If defined, this option controls how to deal with 'others', i.e. bytes of input for which there is no
-rule, by defining rules for them. In case this option gets a code reference, the subroutine will be
-called with the 'other' LHS parameter to get the rule's RHS. Otherwise, a defined scalar value will
-become the RHS of each 'other' LHS.
+rule, by defining rules for them. In case this option gets a code reference, the referenced subroutine
+will be called with the 'other' LHS parameter to get the rule's RHS. Otherwise, a defined scalar value
+will become the RHS of each 'other' LHS.
 
 To preserve the 'other' bytes, you can use
 
@@ -1026,7 +1027,7 @@ Perl is also designed to make the easy jobs not that easy ;)
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2003, 2004 by Otakar Smrz
+Copyright 2003-2005 by Otakar Smrz
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

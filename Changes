@@ -1,19 +1,24 @@
 
-RCS file: /home/CVSROOT/smrz/Encode/Mapper/Mapper.pm,v
+RCS file: /home/CVSROOT/smrz/perl/Encode/Mapper/Mapper.pm,v
 Working file: Mapper.pm
-head: 1.18
+head: 1.19
 branch:
 locks: strict
 access list:
 symbolic names:
+	Encode-Mapper-1-19: 1.19
 	Encode-Mapper-1-18: 1.18
 	Encode-Mapper-1-16: 1.16
 	Encode-Mapper-1-10: 1.10
 	start: 1.1.1.1
 	smrz: 1.1.1
 keyword substitution: kv
-total revisions: 19;	selected revisions: 19
+total revisions: 20;	selected revisions: 20
 description:
+----------------------------
+revision 1.19
+date: 2005/07/24 18:52:52;  author: smrz;  state: Exp;  lines: +10 -9
+Undef-secure ->describe
 ----------------------------
 revision 1.18
 date: 2004/02/08 14:08:24;  author: smrz;  state: Exp;  lines: +46 -18

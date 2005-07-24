@@ -1,4 +1,4 @@
-Encode/Mapper version 1.16                         2003/08/20 16:17:22
+Encode/Mapper version 1.19                         2005/07/24 18:52:52
 ==========================
 
 Encode::Mapper serves for intuitive, yet efficient construction of
@@ -6,6 +6,15 @@ mappings for Encode. The module finds direct application in
 Encode::Arabic and Encode::Korean, providing an object-oriented
 programming interface to convert data consistently, follow the
 engine's computation, dump the engine using Data::Dumper etc.
+
+
+DOCUMENTATION
+
+Visit the site http://search.cpan.org/dist/Encode-Mapper/ or run
+
+    perldoc [file|module]
+
+in order to get more information on this and related software.
 
 
 INSTALLATION
@@ -17,7 +26,11 @@ To install this module on 'make-aware' systems, type the following:
     make test
     make install
 
-With ActiveState Perl, use the Perl Package Manager instead.
+With ActiveState Perl, use the Perl Package Manager instead and run
+
+    ppm
+
+to enter the interactive interface and follow its instructions.
 
 
 DEPENDENCIES
@@ -30,7 +43,7 @@ some methods may not be run:
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2003 Otakar Smrz
+Copyright (C) 2003-2005 Otakar Smrz
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
