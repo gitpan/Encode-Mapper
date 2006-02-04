@@ -2,7 +2,7 @@
 #
 # Mapper Engine Class ##################################################################### 2003/06/19
 
-# $Id: Mapper.pm,v 1.19 2005/07/24 18:52:52 smrz Exp $
+# $Id: Mapper.pm,v 1.20 2005/11/28 00:46:40 smrz Exp $
 
 package Encode::Mapper;
 
@@ -13,7 +13,7 @@ use warnings;
 
 use Carp;
 
-our $VERSION = do { my @r = q$Revision: 1.19 $ =~ /\d+/g; sprintf "%d." . "%02d" x $#r, @r };
+our $VERSION = do { my @r = q$Revision: 1.20 $ =~ /\d+/g; sprintf "%d." . "%02d" x $#r, @r };
 
 
 use bytes;                  # ensures splitting into one-byte tokens .. lexically scoped
@@ -575,7 +575,7 @@ Encode::Mapper - Perl extension for intuitive, yet efficient construction of map
 
 =head1 REVISION
 
-    $Revision: 1.19 $       $Date: 2005/07/24 18:52:52 $
+    $Revision: 1.20 $       $Date: 2005/11/28 00:46:40 $
 
 
 =head1 SYNOPSIS
@@ -1018,9 +1018,9 @@ L<Data::Dumper|Data::Dumper>
 
 =head1 AUTHOR
 
-Otakar Smrz, L<http://ckl.mff.cuni.cz/smrz/>
+Otakar Smrz, L<http://ufal.mff.cuni.cz/~smrz/>
 
-    eval { 'E<lt>' . 'smrz' . "\x40" . ( join '.', qw 'ckl mff cuni cz' ) . 'E<gt>' }
+    eval { 'E<lt>' . ( join '.', qw 'otakar smrz' ) . "\x40" . ( join '.', qw 'mff cuni cz' ) . 'E<gt>' }
 
 Perl is also designed to make the easy jobs not that easy ;)
 

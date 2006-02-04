@@ -13,5 +13,5 @@ WriteMakefile(
                          #'Carp' => 1.01 * 0,
                        },
     'ABSTRACT_FROM' => 'Mapper.pm',
-    'AUTHOR'        => 'Otakar Smrz <smrz ckl mff cuni cz>',
+    'AUTHOR'        => 'Otakar Smrz <otakar smrz mff cuni cz>',
 );

@@ -1,11 +1,12 @@
 
 RCS file: /home/CVSROOT/smrz/perl/Encode/Mapper/Mapper.pm,v
 Working file: Mapper.pm
-head: 1.19
+head: 1.20
 branch:
 locks: strict
 access list:
 symbolic names:
+	Encode-Mapper-1-20: 1.20
 	Encode-Mapper-1-19: 1.19
 	Encode-Mapper-1-18: 1.18
 	Encode-Mapper-1-16: 1.16
@@ -13,8 +14,12 @@ symbolic names:
 	start: 1.1.1.1
 	smrz: 1.1.1
 keyword substitution: kv
-total revisions: 20;	selected revisions: 20
+total revisions: 21;	selected revisions: 21
 description:
+----------------------------
+revision 1.20
+date: 2005/11/28 00:46:40;  author: smrz;  state: Exp;  lines: +5 -5
+Incognito ^^
 ----------------------------
 revision 1.19
 date: 2005/07/24 18:52:52;  author: smrz;  state: Exp;  lines: +10 -9
