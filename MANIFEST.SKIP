@@ -1,5 +1,7 @@
-([^/]+/)?Makefile(\.old)?$
-([^/]+/)?pm_to_blib$
-(^|/)CVS(/|$)
-^blib/.+
+(^|/).svn(/|$)
+(^|/)_[A-Z]
+^Build$
+^Build.bat$
 ^MANIFEST.bak$
+^_build/.+
+^blib/.+

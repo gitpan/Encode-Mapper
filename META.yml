@@ -1,0 +1,19 @@
+---
+name: Encode-Mapper
+version: 1.24
+author:
+  - 'Otakar Smrz <otakar smrz mff cuni cz>'
+abstract: Intuitive, yet efficient construction of mappings for Encode
+license: perl
+build_requires:
+  Test::More: 0
+generated_by: Module::Build version 0.2805
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.2.html
+  version: 1.2
+provides:
+  Encode::Mapper:
+    file: lib/Encode/Mapper.pm
+    version: 1.24
+resources:
+  license: http://dev.perl.org/licenses/

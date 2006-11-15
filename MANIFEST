@@ -1,8 +1,16 @@
+Build.PL
 Changes
+INSTALL
+lib/Encode/Mapper.pm
 MANIFEST
 MANIFEST.SKIP
-Makefile.PL
-Mapper.pm
+META.yml			# Will be created by "make dist"
 README
-t/1.t
-t/2.t
+t/00-load.t
+t/boilerplate.t
+t/Encode-Mapper-1.t
+t/Encode-Mapper-2.t
+t/Encode-Mapper-3.t
+t/Encode-Mapper-4.t
+t/pod-coverage.t
+t/pod.t

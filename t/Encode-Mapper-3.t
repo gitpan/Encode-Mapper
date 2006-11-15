@@ -1,6 +1,3 @@
-# Before `make install' is performed this script should be runnable with
-# `make test'. After `make install' it should work as `perl 2.t'
-
 #########################
 
 use Test::More tests => 4;
@@ -10,20 +7,9 @@ use Test::More tests => 4;
 # Insert your test code below, the Test::More module is use()ed here so read
 # its man page ( perldoc Test::More ) for help writing this test script.
 
-
     use Encode::Mapper;     ############################################# Enjoy the ride ^^
 
-    use Encode::Mapper ':others', ':silent';    # syntactic sugar for compiler options ..
-
-    Encode::Mapper->options (                   # .. equivalent, see more in the text
-            'others' => sub { shift },
-            'silent' => 1,
-        );
-
-    Encode::Mapper->options (                   # .. resetting, but not to use 'use' !!!
-            'others' => undef,
-            'silent' => 0
-        );
+    use Encode::Mapper ':others', ':silent';
 
     ## Types of rules for mapping the data and controlling the engine's configuration #####
 
@@ -39,16 +25,20 @@ use Test::More tests => 4;
         'Xxx',          [ sub { $i++; '' }, 'X' ],      # count the still married 'x'
     );
 
+
     ## Constructors of the engine, i.e. one Encode::Mapper instance #######################
 
     $mapper_A = Encode::Mapper->compile( @rules );        # engine constructor
-    $mapper_B = Encode::Mapper->new( @rules );            # equivalent alias
+
+    Encode::Mapper->options('others' => undef, 'silent' => undef, 'complement' => ['x','y','x','z']);
+
+    $mapper_B = Encode::Mapper->new( ['others' => sub { shift }, 'silent' => 1], @rules );
 
     is_deeply $mapper_A, $mapper_B, 'constructor identity';
 
     ## Elementary performance of the engine ###############################################
 
-    @source = ( 'x', 'xx', 'xxuc(x)', 'xxx', '', 'xx' );    # distribution of the data ..
+    @source = ( 'x', 'xAx', 'xBxuc(x)', 'xxx', '', 'xxC' );    # distribution of the data ..
     $source = join '', @source;                             # .. is ignored in this sense
 
     @result_A = ($mapper_A->process(@source), $mapper_A->recover());  # the mapping procedure
@@ -58,10 +48,7 @@ use Test::More tests => 4;
 
     $result = join '', map { ref $_ eq 'CODE' ? $_->() : $_ } @result_A;
 
-        # maps 'xxxxxuc(x)xxxxx' into ( 'Y', 'Y', '', 'y', CODE(...), CODE(...), 'y' ), ..
-        # .. then converts it into 'YYyy', setting $i == 2
-
-    is $result, 'YYyy', 'expected output';
+    is $result, 'YAYByXyC', 'expected output';
     is $i, 2, 'expected side effect';
 
     #@follow = $mapper->compute(@source);    # follow the engine's computation over @source
