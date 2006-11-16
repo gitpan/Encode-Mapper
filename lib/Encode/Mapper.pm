@@ -2,7 +2,7 @@
 #
 # Mapper Engine Class ##################################################################### 2003/06/19
 
-# $Id: Mapper.pm 143 2006-11-15 01:16:57Z smrz $
+# $Id: Mapper.pm 146 2006-11-16 10:13:07Z smrz $
 
 package Encode::Mapper;
 
@@ -13,7 +13,7 @@ use warnings;
 
 use Carp;
 
-our $VERSION = '1.24' || do { q $Revision: 143 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
+our $VERSION = '1.4' || do { q $Revision: 146 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 
 use bytes;                  # ensures splitting into one-byte tokens .. lexically scoped
@@ -576,7 +576,7 @@ Encode::Mapper - Intuitive, yet efficient construction of mappings for Encode
 
 =head1 REVISION
 
-    $Revision: 143 $       $Date: 2006-11-15 02:16:57 +0100 (Wed, 15 Nov 2006) $
+    $Revision: 146 $       $Date: 2006-11-16 11:13:07 +0100 (Thu, 16 Nov 2006) $
 
 
 =head1 SYNOPSIS
