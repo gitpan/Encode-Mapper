@@ -2,7 +2,7 @@
 #
 # Mapper Engine Class ##################################################################### 2003/06/19
 
-# $Id: Mapper.pm 146 2006-11-16 10:13:07Z smrz $
+# $Id: Mapper.pm 369 2007-07-05 23:06:24Z smrz $
 
 package Encode::Mapper;
 
@@ -13,7 +13,7 @@ use warnings;
 
 use Carp;
 
-our $VERSION = '1.4' || do { q $Revision: 146 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
+our $VERSION = '1.5' || do { q $Revision: 369 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 
 use bytes;                  # ensures splitting into one-byte tokens .. lexically scoped
@@ -576,7 +576,7 @@ Encode::Mapper - Intuitive, yet efficient construction of mappings for Encode
 
 =head1 REVISION
 
-    $Revision: 146 $       $Date: 2006-11-16 11:13:07 +0100 (Thu, 16 Nov 2006) $
+    $Revision: 369 $       $Date: 2007-07-06 01:06:24 +0200 (Fri, 06 Jul 2007) $
 
 
 =head1 SYNOPSIS
@@ -1030,7 +1030,7 @@ Perl is also designed to make the easy jobs not that easy ;)
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2003-2006 by Otakar Smrz
+Copyright 2003-2007 by Otakar Smrz
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

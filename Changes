@@ -1,3 +1,51 @@
+Revision: 369
+Author: smrz
+Date: 01:06:24, Friday, 06 July, 2007
+Message:
+Types.hs quite fine
+----
+Revision: 368
+Author: smrz
+Date: 14:31:04, Thursday, 05 July, 2007
+Message:
+CPAN warning on non-portability
+----
+Revision: 219
+Author: smrz
+Date: 12:34:22, Friday, 23 February, 2007
+Message:
+Re-organizing
+----
+Revision: 197
+Author: smrz
+Date: 15:12:25, Monday, 05 February, 2007
+Message:
+Extensions and improvements
+----
+Revision: 187
+Author: smrz
+Date: 14:27:14, Friday, 26 January, 2007
+Message:
+Portable builds
+----
+Revision: 165
+Author: smrz
+Date: 12:06:40, Thursday, 21 December, 2006
+Message:
+Defining install_base parameter
+----
+Revision: 159
+Author: smrz
+Date: 23:45:41, Wednesday, 13 December, 2006
+Message:
+svn:properties
+----
+Revision: 147
+Author: smrz
+Date: 11:21:52, Thursday, 16 November, 2006
+Message:
+Release 1.4
+----
 Revision: 146
 Author: smrz
 Date: 11:13:07, Thursday, 16 November, 2006

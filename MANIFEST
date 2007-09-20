@@ -4,7 +4,7 @@ INSTALL
 lib/Encode/Mapper.pm
 MANIFEST
 MANIFEST.SKIP
-META.yml			# Will be created by "make dist"
+META.yml
 README
 t/00-load.t
 t/boilerplate.t
