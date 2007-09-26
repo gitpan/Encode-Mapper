@@ -6,7 +6,7 @@ author:
 abstract: Intuitive, yet efficient mappings for Encode
 license: perl
 requires:
-  perl: 5.8
+  perl: 5.008
 build_requires:
   Test::More: 0
 generated_by: Module::Build version 0.2808
